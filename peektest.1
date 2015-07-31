@@ -1,0 +1,44 @@
+.Dd Aug 1, 2015
+.Dt peektest 1
+.Os
+.Sh NAME
+.Nm peektest
+.Nd Test return values of
+.Xr recvmsg 2
+with
+.Va MSG_PEEK
+.Sh SYNOPSIS
+.Nm
+.Sh DESCRIPTION
+From freebsd-current email:
+.Pp
+Greetings,
+.Pp
+I have been researching differences in recvmsg() behavior across platforms
+(namely Illumos and Linux) with respect to MSG_PEEK and 0-length buffers.
+Certain Linux software I am attempting to run under Illumos makes a recvmsg()
+call with a 0-length iovec and flags set to MSG_PEEK in order to interrogate
+the size of a queued dgram.  On native Linux, recvmsg() returns the size of the
+queued dgram (with the MSG_TRUNC flag set).  On both Illumos and FreeBSD, a
+size of 0 is returned (with MSG_TRUNC set as well).  In reading the POSIX spec
+(http://pubs.opengroup.org/onlinepubs/9699919799/functions/recvmsg.html), it is
+not clear that returning 0 in this case is correct behavior.
+.Pp
+Here is a small test program I wrote up to display the differences in behavior:
+https://us-east.manta.joyent.com/patrick.mooney/public/recvmsg/peektest.c
+.Pp
+The output on Linux:
+peek len: 20 errno: 0 flags: 20
+recv len: 20 errno: 0 flags: 0
+... versus BSD and Illumos:
+peek len: 0 errno: 2 flags: 12
+recv len: 20 errno: 2 flags: 0
+.Pp
+I am interested in your opinions on the matter.
+.Pp
+With regards,
+.Pp
+--Patrick
+.Pp
+.Sh AUTHOR
+Patrick Mooney <patrick.mooney@joyent.com>
