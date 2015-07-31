@@ -40,7 +40,7 @@ int main()
 
 	server = socket(AF_INET, SOCK_DGRAM, 0);
 	if (server < 0) {
-		bail("socket()");
+		bail("socket(server)");
 	}
 	err = bind(server, (struct sockaddr *)&addr, sizeof (addr));
 	if (err < 0) {
@@ -52,28 +52,44 @@ int main()
 	if (err < 0) {
 		bail("getsockname()");
 	}
+  printf("Using port %d\n", addr.sin_port);
 
 	client = socket(AF_INET, SOCK_DGRAM, 0);
+	if (client < 0) {
+		bail("socket(client)");
+	}
 
-	err = sendto(client, buf, 0x20, 0, (struct sockaddr *)&addr, sizeof (addr));
+  strncpy(buf, "ABCD", 4);
+	err = sendto(client, buf, sizeof(buf), 0, (struct sockaddr *)&addr, sizeof (addr));
 	if (err < 0) {
 		bail("sendto()");
 	}
 
-	iov.iov_base = NULL;
-	iov.iov_len = 0;
+	errno = 0;
+	iov.iov_base = &buf;
+	iov.iov_len = 2;
 	hdr.msg_iov = &iov;
 	hdr.msg_iovlen = 1;
-	hdr.msg_flags = MSG_PEEK;
+	hdr.msg_flags = 0;
+	bzero(buf, sizeof (buf));
 
-	err = recvmsg(server, &hdr, MSG_PEEK|MSG_TRUNC);
-	printf("peek len: %x errno: %d flags: %x\n", err, errno, hdr.msg_flags);
+	printf("peek buflen: 0x%02zx\n", iov.iov_len);
+	err = recvmsg(server, &hdr, MSG_PEEK);
+	if (err < 0)
+		perror("recvmsg(server, ..., MSG_PEEK");
+	printf("peek len: 0x%02x errno: %d flags: 0x%02x\n", err, errno, hdr.msg_flags);
+	printf("peek read: [%-4s]\n", buf);
 
 	iov.iov_base = &buf;
 	iov.iov_len = 0x20;
+	bzero(buf, sizeof (buf));
+	printf("read buflen: 0x%02zx\n", iov.iov_len);
 	err = recvmsg(server, &hdr, 0);
-	printf("recv len: %x errno: %d flags: %x\n", err, errno, hdr.msg_flags);
-
+	if (err < 0) {
+		perror("recvmsg(server, ..., 0)");
+	}
+	printf("recv len: 0x%02x errno: %d flags: 0x%02x\n", err, errno, hdr.msg_flags);
+	printf("recv read: [%-4s]\n", buf);
 
 	close(client);
 	close(server);
